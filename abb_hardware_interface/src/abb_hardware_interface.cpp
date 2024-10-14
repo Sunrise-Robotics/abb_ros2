@@ -217,7 +217,6 @@ std::vector<hardware_interface::StateInterface> ABBSystemHardware::export_state_
       for (auto& joint : unit.joints)
       {
         const auto joint_name = joint.name;
-        RCLCPP_INFO_STREAM(LOGGER, "Unstripped name: " << joint.name);
         RCLCPP_INFO_STREAM(LOGGER, "Exporting state interface for joint " << joint_name);
         state_interfaces.emplace_back(
             hardware_interface::StateInterface(joint_name, hardware_interface::HW_IF_POSITION, &joint.state.position));
