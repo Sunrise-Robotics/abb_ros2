@@ -216,10 +216,9 @@ std::vector<hardware_interface::StateInterface> ABBSystemHardware::export_state_
     {
       for (auto& joint : unit.joints)
       {
-        // TODO(seng): Consider changing joint names in robot description to match what comes
-        // from the ABB robot description to avoid needing to strip the prefix here
-        const auto pos = joint.name.find("joint");
-        const auto joint_name = joint.name.substr(pos);
+        const auto joint_name = joint.name;
+        RCLCPP_INFO_STREAM(LOGGER, "Unstripped name: " << joint.name);
+        RCLCPP_INFO_STREAM(LOGGER, "Exporting state interface for joint " << joint_name);
         state_interfaces.emplace_back(
             hardware_interface::StateInterface(joint_name, hardware_interface::HW_IF_POSITION, &joint.state.position));
         state_interfaces.emplace_back(
@@ -239,10 +238,7 @@ std::vector<hardware_interface::CommandInterface> ABBSystemHardware::export_comm
     {
       for (auto& joint : unit.joints)
       {
-        // TODO(seng): Consider changing joint names in robot description to match what comes
-        // from the ABB robot description to avoid needing to strip the prefix here
-        const auto pos = joint.name.find("joint");
-        const auto joint_name = joint.name.substr(pos);
+        const auto joint_name = joint.name;
         command_interfaces.emplace_back(hardware_interface::CommandInterface(
             joint_name, hardware_interface::HW_IF_POSITION, &joint.command.position));
         command_interfaces.emplace_back(hardware_interface::CommandInterface(
