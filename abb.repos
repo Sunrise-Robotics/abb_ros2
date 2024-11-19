@@ -9,8 +9,8 @@ repositories:
     version: master
   abb_egm_rws_managers:
     type: git
-    url: https://github.com/ros-industrial/abb_egm_rws_managers.git
-    version: master
+    url: https://github.com/Yadunund/abb_egm_rws_managers.git
+    version: yadu/support_initial_joint_values
   abb_ros2_msgs:
     type: git
     url: https://github.com/gbartyzel/abb_ros2_msgs.git
