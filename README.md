@@ -1,3 +1,14 @@
+***
+> **NOTE**: Sunrise robotics has forked the original package and made changes to support their needs.
+> This mainly revolves around adding support for 1) Omnicore controllers and 2) starting the controller
+> with initial joint values.
+>
+> These changes are manifested in the change of the dependecies (abb_egm_rws_managers) and the way
+> the initial joint values are retrieved from the controller in the hardware interface. A standalone
+> function was added to retrieve the joint values from RWS but without the use of the RWS managers.
+> This is a temporary solution and we will try to help with merging the changes upstream.
+***
+
 This is a meta-package containing everything to run an ABB robot or simulation with ROS 2.
 
 - `abb_bringup`: Launch files and ros2_control config files that are generic to many types of ABB robots.
@@ -9,7 +20,7 @@ This is a meta-package containing everything to run an ABB robot or simulation w
 - `robot_studio_resources`: Code and a pack-and-go solution to begin using RobotStudio easily.
 - `abb_ros2`: A meta-package that exists to reserve the repo name in rosdistro
 
-## Getting Started:
+
 
 There are three ways to use this package:
 
