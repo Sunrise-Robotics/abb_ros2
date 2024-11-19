@@ -87,6 +87,19 @@ void verifyRobotWareVersion(const RobotWareVersion& rw_version);
  * \return bool true if the StateMachine Add-In is present.
  */
 bool verifyStateMachineAddInPresence(const SystemIndicators& system_indicators);
+
+std::vector<abb::robot::InitialJointValue> getInitialJointsFromController(
+    const std::string& ip, const int port);
+
+/**
+ * \brief A function for getting initial joint values from the controller using RWS.
+ *
+ * \param ip for the IP address of the controller.
+ * \param port for the port number of the controller.
+ *
+ * \return std::vector<abb::robot::InitialJointValue> containing the initial joint values.
+ */
+
 }  // namespace utilities
 }  // namespace robot
 }  // namespace abb

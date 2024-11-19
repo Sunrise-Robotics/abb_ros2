@@ -15,6 +15,8 @@
 
 #include <abb_hardware_interface/abb_hardware_interface.hpp>
 #include <abb_hardware_interface/utilities.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <future>
 
 using namespace std::chrono_literals;
 
@@ -29,6 +31,10 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
   {
     return CallbackReturn::ERROR;
   }
+
+  // Define the initial joints variable
+  // std::vector<abb::robot::InitialJointValue> initial_joint_values = {};
+  std::vector<abb::robot::InitialJointValue> initial_joint_values;
 
   // Validate interfaces configured in ros2_control xacro.
   for (const hardware_interface::ComponentInfo& joint : info_.joints)
@@ -84,11 +90,11 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
                                  configure_it->second == "false" || configure_it->second == "False" ? false :
                                                                                                       true;
 
+  const auto rws_port = stoi(info_.hardware_parameters["rws_port"]);
+  const auto rws_ip = info_.hardware_parameters["rws_ip"];
   if (configure_via_rws)
   {
     RCLCPP_INFO_STREAM(LOGGER, "Generating robot controller description from RWS.");
-    const auto rws_port = stoi(info_.hardware_parameters["rws_port"]);
-    const auto rws_ip = info_.hardware_parameters["rws_ip"];
 
     if (rws_ip == "None")
     {
@@ -160,18 +166,99 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
   RCLCPP_INFO_STREAM(LOGGER, "Robot controller description:\n"
                                  << abb::robot::summaryText(robot_controller_description_));
 
+  abb::robot::InitialJointValue initial_value;
+
+  /*
+  // TIMO: The fix below is rather hacky and I personally don't like it. We subscribe to the
+  // joints acquired from RWS which means, that the `abb_joint_publisher` must be running.
+  // This solution is not great and a different one should be found.
+  // For the time being I leave this here in a commit so I don't have to re-write in case I need it again.
+  // Create a promise and future to wait for the message
+  std::promise<void> promise;
+  std::future<void> future = promise.get_future();
+
+  //
+  // Subscribe to the topic called `/rws_joint_states` to get the current joint values
+  rclcpp::Node::SharedPtr node = rclcpp::Node::make_shared("abb_hardware_interface");
+  auto subscription = node->create_subscription<sensor_msgs::msg::JointState>(
+    "/rws_joint_states", 10,
+    [this, &promise, &initial_value, &initial_joint_values](const sensor_msgs::msg::JointState::SharedPtr msg) {
+      // Update the motion data with the new joint values, position and velocity
+      for (size_t i = 0; i < msg->name.size(); ++i) {
+        initial_value.position_state = msg->position[i];
+        initial_value.velocity_state = 0;
+        initial_value.position_command = msg->position[i];
+        initial_value.velocity_command = 0;
+        // Print the name and the value of the position
+        initial_joint_values.push_back(std::move(initial_value));
+      }
+      // Signal that we received the message
+      promise.set_value();
+    });
+
+  RCLCPP_INFO(LOGGER, "Waiting for initial joint states...");
+
+  // Spin until we get a message or timeout
+  rclcpp::Rate rate(10);  // 10Hz
+  int timeout_seconds = 10;  // Timeout after 10 seconds
+  int count = 0;
+
+  while (rclcpp::ok()) {
+    rclcpp::spin_some(node);
+
+    // Check if we received the message
+    if (future.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+      RCLCPP_INFO(LOGGER, "Received initial joint states");
+      break;
+    }
+
+    rate.sleep();
+    count++;
+
+    if (count > timeout_seconds * 10) {  // 10Hz * 10 seconds = 100 iterations
+      RCLCPP_ERROR(LOGGER, "Timeout waiting for initial joint states");
+      return CallbackReturn::ERROR;
+    }
+  }
+
+
+  // Reset the subscription since we don't need it anymore
+  subscription.reset();
+  */
+
+  // Get initial joint values from controller using RWS and our custom function
+  try
+  {
+    RCLCPP_INFO(LOGGER, "Getting initial joint values from controller...");
+    initial_joint_values = abb::robot::utilities::getRWSJointsFromController(rws_ip, rws_port);
+    RCLCPP_INFO(LOGGER, "Successfully retrieved initial joint values");
+  }
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR_STREAM(LOGGER, "Failed to get initial joint values: " << e.what());
+    return CallbackReturn::ERROR;
+  }
+
   // Configure EGM
   RCLCPP_INFO(LOGGER, "Configuring EGM interface...");
 
   // Initialize motion data from robot controller description
   try
   {
-    abb::robot::initializeMotionData(motion_data_, robot_controller_description_);
+    //abb::robot::initializeMotionData(motion_data_, robot_controller_description_);
+    abb::robot::initializeMotionData(motion_data_, robot_controller_description_, initial_joint_values);
   }
   catch (...)
   {
     RCLCPP_ERROR_STREAM(LOGGER, "Failed to initialize motion data from robot controller description");
     return CallbackReturn::ERROR;
+  }
+
+  // Loop through the joints and print the current joint values
+  for (const auto& joint : motion_data_.groups[0].units[0].joints)
+  {
+    RCLCPP_INFO_STREAM(LOGGER, "Joint state " << joint.name << " has position " << joint.state.position << " and velocity " << joint.state.velocity);
+    RCLCPP_INFO_STREAM(LOGGER, "Joint command " << joint.name << " has position " << joint.command.position << " and velocity " << joint.command.velocity);
   }
 
   // Create channel configuration for each mechanical unit group
@@ -182,7 +269,7 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
     {
       const auto egm_port = stoi(info_.hardware_parameters[group.name() + "egm_port"]);
       const auto channel_configuration =
-          abb::robot::EGMManager::ChannelConfiguration{ static_cast<uint16_t>(egm_port), group };
+          abb::robot::EGMManager::ChannelConfiguration{ static_cast<uint16_t>(egm_port), "", group };
       channel_configurations.emplace_back(channel_configuration);
       RCLCPP_INFO_STREAM(LOGGER,
                          "Configuring EGM for mechanical unit group " << group.name() << " on port " << egm_port);
@@ -202,6 +289,16 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
   {
     RCLCPP_ERROR_STREAM(LOGGER, "Failed to initialize EGM connection");
     return CallbackReturn::ERROR;
+  }
+
+  try
+  {
+    // Try to read the current values from the robot
+    egm_manager_->read(motion_data_);
+  }
+  catch(const std::exception& e)
+  {
+    RCLCPP_ERROR_STREAM(LOGGER, "Failed to read the current values from the robot");
   }
 
   return CallbackReturn::SUCCESS;
@@ -252,6 +349,8 @@ std::vector<hardware_interface::CommandInterface> ABBSystemHardware::export_comm
 CallbackReturn ABBSystemHardware::on_activate(const rclcpp_lifecycle::State& /* previous_state */)
 {
   size_t counter = 0;
+  std::vector<abb::robot::InitialJointValue> initial_joint_values;
+
   RCLCPP_INFO(LOGGER, "Connecting to robot...");
   while (rclcpp::ok() && ++counter < NUM_CONNECTION_TRIES)
   {
@@ -271,7 +370,41 @@ CallbackReturn ABBSystemHardware::on_activate(const rclcpp_lifecycle::State& /* 
     rclcpp::sleep_for(500ms);
   }
 
+  // Print the joint current and command values from motion_data_
+  for (const auto& joint : motion_data_.groups[0].units[0].joints)
+  {
+    RCLCPP_INFO_STREAM(LOGGER, "Joint state " << joint.name << " has position " << joint.state.position << " and velocity " << joint.state.velocity);
+    RCLCPP_INFO_STREAM(LOGGER, "Joint command " << joint.name << " has position " << joint.command.position << " and velocity " << joint.command.velocity);
+  }
+
   egm_manager_->read(motion_data_);
+
+  // Get initial joint values from controller using RWS and our custom function
+  try
+  {
+    RCLCPP_INFO(LOGGER, "Getting initial joint values from controller...");
+    initial_joint_values = abb::robot::utilities::getInitialJointsFromController(info_.hardware_parameters["rws_ip"], stoi(info_.hardware_parameters["rws_port"]));
+    RCLCPP_INFO(LOGGER, "Successfully retrieved initial joint values");
+  }
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR_STREAM(LOGGER, "Failed to get initial joint values: " << e.what());
+    return CallbackReturn::ERROR;
+  }
+
+  // Assign the initial joint values to the motion_data_
+  for (size_t i = 0; i < initial_joint_values.size(); ++i)
+  {
+    motion_data_.groups[0].units[0].joints[i].state.position = initial_joint_values[i].position_state;
+    motion_data_.groups[0].units[0].joints[i].state.velocity = initial_joint_values[i].velocity_state;
+  }
+
+  // Print the joint values from motion_data_
+  for (const auto& joint : motion_data_.groups[0].units[0].joints)
+  {
+    RCLCPP_INFO_STREAM(LOGGER, "Joint state " << joint.name << " has position " << joint.state.position << " and velocity " << joint.state.velocity);
+    RCLCPP_INFO_STREAM(LOGGER, "Joint command " << joint.name << " has position " << joint.command.position << " and velocity " << joint.command.velocity);
+  }
 
   RCLCPP_INFO(LOGGER, "ros2_control hardware interface was successfully started!");
 

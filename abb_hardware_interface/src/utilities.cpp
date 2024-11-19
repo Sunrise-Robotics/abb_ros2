@@ -42,6 +42,24 @@
 #include <abb_hardware_interface/utilities.hpp>
 #include <stdexcept>
 
+// New includes
+#include <Poco/Net/HTTPSClientSession.h>
+#include <Poco/Net/HTTPRequest.h>
+#include <Poco/Net/HTTPResponse.h>
+#include <Poco/URI.h>
+#include <Poco/DOM/DOMParser.h>
+#include <Poco/DOM/Document.h>
+#include <Poco/DOM/NodeList.h>
+#include <Poco/DOM/Element.h>
+#include <sstream>
+#include <vector>
+#include <cmath>
+#include <Poco/Net/AcceptCertificateHandler.h>
+#include <Poco/Net/SSLManager.h>
+#include <Poco/Net/Context.h>
+#include <Poco/Base64Encoder.h>
+// End of new includes
+
 #include <rclcpp/rclcpp.hpp>
 
 namespace abb
@@ -115,6 +133,139 @@ bool verifyStateMachineAddInPresence(const SystemIndicators& system_indicators)
 {
   return system_indicators.addins().state_machine_1_0() || system_indicators.addins().state_machine_1_1();
 }
+
+// This function works as "stand-alone" does not make any use of the RWS managers. That is because
+// the RWS managers (in their current state) are not compatible with the Omnicore controllers. The
+// primary use of this function is to allow the hardware interface to retrieve the current joint
+// values from the controller before EGM is initialized. This prevents sudden jumps in the joint
+// states which would otherwise occur when starting the hardware interface.
+std::vector<abb::robot::InitialJointValue> getRWSJointsFromController(
+    const std::string& ip, const int port)
+{
+    std::vector<abb::robot::InitialJointValue> initial_joints;
+
+    try {
+        // Set up SSL context to accept all certificates
+        Poco::Net::Context::Ptr context = new Poco::Net::Context(
+            Poco::Net::Context::CLIENT_USE, "", "", "",
+            Poco::Net::Context::VERIFY_NONE, 9, false,
+            "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+
+        // Create a certificate handler that accepts all certificates
+        Poco::SharedPtr<Poco::Net::InvalidCertificateHandler> ptrHandler =
+            new Poco::Net::AcceptCertificateHandler(false);
+
+        // Install the custom certificate handler
+        Poco::Net::SSLManager::instance().initializeClient(nullptr, ptrHandler, context);
+
+        // Construct the URL and create session
+        Poco::URI uri("https://" + ip + ":" + std::to_string(port) +
+                     "/rw/motionsystem/mechunits/ROB_1/jointtarget");
+
+        // Create session with the custom context
+        Poco::Net::HTTPSClientSession session(uri.getHost(), uri.getPort(), context);
+        session.setKeepAlive(true);
+
+        // Create and send request with authentication
+        Poco::Net::HTTPRequest request(Poco::Net::HTTPRequest::HTTP_GET, uri.getPathAndQuery());
+
+        // Add Accept header
+        request.set("Accept", "application/xhtml+xml;v=2.0");
+
+        // Add Basic Authentication
+        std::string auth = "Default User:robotics";
+        std::ostringstream encodedAuth;
+        Poco::Base64Encoder encoder(encodedAuth);
+        encoder << auth;
+        encoder.close();
+        request.setCredentials("Basic", encodedAuth.str());
+
+        session.sendRequest(request);
+
+        // Get response
+        Poco::Net::HTTPResponse response;
+        std::istream& rs = session.receiveResponse(response);
+
+        if (response.getStatus() != Poco::Net::HTTPResponse::HTTP_OK) {
+            throw std::runtime_error("HTTP request failed with status: " +
+                std::to_string(response.getStatus()));
+        }
+
+        // Read the response
+        std::stringstream ss;
+        ss << rs.rdbuf();
+        std::string response_string = ss.str();
+
+        // Parse XML response using Poco::XML
+        Poco::XML::DOMParser parser;
+        Poco::AutoPtr<Poco::XML::Document> doc = parser.parseString(response_string);
+
+        // Navigate to the li element with class "ms-jointtarget"
+        Poco::XML::Element* root = doc->documentElement();
+        if (!root) {
+            throw std::runtime_error("Failed to find root element in XML");
+        }
+
+        // Find the li element with class "ms-jointtarget"
+        Poco::XML::Element* body = root->getChildElement("body");
+        if (!body) {
+            throw std::runtime_error("Failed to find body element");
+        }
+
+        Poco::XML::Element* div = body->getChildElement("div");
+        if (!div) {
+            throw std::runtime_error("Failed to find div element");
+        }
+
+        Poco::XML::Element* ul = div->getChildElement("ul");
+        if (!ul) {
+            throw std::runtime_error("Failed to find ul element");
+        }
+
+        Poco::XML::Element* li = ul->getChildElement("li");
+        if (!li) {
+            throw std::runtime_error("Failed to find li element");
+        }
+
+        // Extract joint values
+        for (int i = 1; i <= 6; ++i) {
+            std::string joint_name = "rax_" + std::to_string(i);
+
+            // Get all span elements
+            Poco::XML::NodeList* spans = li->getElementsByTagName("span");
+            Poco::XML::Element* joint_elem = nullptr;
+
+            // Find the span with the matching class
+            for (unsigned long i = 0; i < spans->length(); ++i) {
+                Poco::XML::Element* span = static_cast<Poco::XML::Element*>(spans->item(i));
+                if (span->getAttribute("class") == joint_name) {
+                    joint_elem = span;
+                    break;
+                }
+            }
+
+            if (!joint_elem) {
+                throw std::runtime_error("Failed to find " + joint_name + " in XML");
+            }
+
+            InitialJointValue initial_value;
+            initial_value.position_state = std::stod(joint_elem->innerText()) * M_PI / 180.0;
+            initial_value.velocity_state = 0;
+            initial_value.position_command = std::stod(joint_elem->innerText()) * M_PI / 180.0;
+            initial_value.velocity_command = 0;
+            initial_joints.push_back(initial_value);
+
+            // Release the NodeList
+            spans->release();
+        }
+    }
+    catch (const Poco::Exception& e) {
+        throw std::runtime_error("Poco error: " + std::string(e.what()));
+    }
+
+    return initial_joints;
+}
+
 }  // namespace utilities
 }  // namespace robot
 }  // namespace abb
