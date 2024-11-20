@@ -88,7 +88,7 @@ void verifyRobotWareVersion(const RobotWareVersion& rw_version);
  */
 bool verifyStateMachineAddInPresence(const SystemIndicators& system_indicators);
 
-std::vector<abb::robot::InitialJointValue> getInitialJointsFromController(
+std::vector<abb::robot::InitialJointValue> getRWSJointsFromController(
     const std::string& ip, const int port);
 
 /**
