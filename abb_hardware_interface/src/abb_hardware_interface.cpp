@@ -373,7 +373,7 @@ CallbackReturn ABBSystemHardware::on_deactivate(const rclcpp_lifecycle::State& /
 return_type ABBSystemHardware::read(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
   egm_manager_->read(motion_data_);
-  RCLCPP_INFO_THROTTLE(LOGGER, clock_, 1000, "Reading from robot");
+  RCLCPP_DEBUG_THROTTLE(LOGGER, clock_, 1000, "Reading from robot");
   return return_type::OK;
 }
 
@@ -381,7 +381,7 @@ return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Dur
 {
   if (!is_activated_)
   {
-    RCLCPP_INFO_THROTTLE(LOGGER, clock_, 1000, "Not activated. Skipping write");
+    RCLCPP_WARN_THROTTLE(LOGGER, clock_, 1000, "Not activated. Skipping write");
     return return_type::OK;
   }
 
@@ -396,7 +396,7 @@ return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Dur
     }
   }
 
-  RCLCPP_INFO_THROTTLE(LOGGER, clock_, 1000, "Writing to robot");
+  RCLCPP_DEBUG_THROTTLE(LOGGER, clock_, 1000, "Writing to robot");
   egm_manager_->write(motion_data_);
   return return_type::OK;
 }
