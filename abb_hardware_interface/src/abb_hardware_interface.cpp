@@ -32,6 +32,9 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
     return CallbackReturn::ERROR;
   }
 
+  // Initialize the is_activated_ flag
+  is_activated_ = false;
+
   // Define the initial joints variable
   // std::vector<abb::robot::InitialJointValue> initial_joint_values = {};
   std::vector<abb::robot::InitialJointValue> initial_joint_values;
@@ -89,6 +92,9 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
   const bool configure_via_rws = configure_it == info_.hardware_parameters.end()                    ? true :
                                  configure_it->second == "false" || configure_it->second == "False" ? false :
                                                                                                       true;
+
+  // Initialize a clock so that we can throttle the logging
+  clock_ = rclcpp::Clock(RCL_ROS_TIME);
 
   const auto rws_port = stoi(info_.hardware_parameters["rws_port"]);
   const auto rws_ip = info_.hardware_parameters["rws_ip"];
@@ -291,6 +297,7 @@ std::vector<hardware_interface::CommandInterface> ABBSystemHardware::export_comm
 CallbackReturn ABBSystemHardware::on_activate(const rclcpp_lifecycle::State& /* previous_state */)
 {
   size_t counter = 0;
+  std::vector<abb::robot::InitialJointValue> initial_joint_values;
 
   RCLCPP_INFO(LOGGER, "Connecting to robot...");
   while (rclcpp::ok() && ++counter < NUM_CONNECTION_TRIES)
@@ -311,21 +318,85 @@ CallbackReturn ABBSystemHardware::on_activate(const rclcpp_lifecycle::State& /* 
     rclcpp::sleep_for(500ms);
   }
 
+  // Print the joint current and command values from motion_data_
+  for (const auto& joint : motion_data_.groups[0].units[0].joints)
+  {
+    RCLCPP_DEBUG_STREAM(LOGGER, "Joint state " << joint.name << " has position " << joint.state.position << " and velocity " << joint.state.velocity);
+    RCLCPP_DEBUG_STREAM(LOGGER, "Joint command " << joint.name << " has position " << joint.command.position << " and velocity " << joint.command.velocity);
+  }
+
   egm_manager_->read(motion_data_);
+
+  // Get initial joint values from controller using RWS and our custom function
+  try
+  {
+    RCLCPP_DEBUG(LOGGER, "Getting initial joint values from controller...");
+    initial_joint_values = abb::robot::utilities::getRWSJointsFromController(info_.hardware_parameters["rws_ip"], stoi(info_.hardware_parameters["rws_port"]));
+    RCLCPP_DEBUG(LOGGER, "Successfully retrieved initial joint values");
+  }
+  catch (const std::exception& e)
+  {
+    RCLCPP_ERROR_STREAM(LOGGER, "Failed to get initial joint values: " << e.what());
+    return CallbackReturn::ERROR;
+  }
+
+  // Assign the initial joint values to the motion_data_
+  for (size_t i = 0; i < initial_joint_values.size(); ++i)
+  {
+    motion_data_.groups[0].units[0].joints[i].state.position = initial_joint_values[i].position_state;
+    motion_data_.groups[0].units[0].joints[i].state.velocity = initial_joint_values[i].velocity_state;
+    motion_data_.groups[0].units[0].joints[i].command.position = initial_joint_values[i].position_command;
+    motion_data_.groups[0].units[0].joints[i].command.velocity = initial_joint_values[i].velocity_command;
+  }
+
+  // Print the joint values from motion_data_
+  for (const auto& joint : motion_data_.groups[0].units[0].joints)
+  {
+    RCLCPP_DEBUG_STREAM(LOGGER, "Joint state " << joint.name << " has position " << joint.state.position << " and velocity " << joint.state.velocity);
+    RCLCPP_DEBUG_STREAM(LOGGER, "Joint command " << joint.name << " has position " << joint.command.position << " and velocity " << joint.command.velocity);
+  }
+
+  is_activated_ = true;
 
   RCLCPP_INFO(LOGGER, "ros2_control hardware interface was successfully started!");
 
   return CallbackReturn::SUCCESS;
 }
 
+CallbackReturn ABBSystemHardware::on_deactivate(const rclcpp_lifecycle::State& /* previous_state */)
+{
+  RCLCPP_INFO(LOGGER, "ros2_control hardware interface was successfully stopped!");
+  is_activated_ = false;
+  return CallbackReturn::SUCCESS;
+}
+
 return_type ABBSystemHardware::read(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
   egm_manager_->read(motion_data_);
+  RCLCPP_INFO_THROTTLE(LOGGER, clock_, 1000, "Reading from robot");
   return return_type::OK;
 }
 
 return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
+  if (!is_activated_)
+  {
+    RCLCPP_INFO_THROTTLE(LOGGER, clock_, 1000, "Not activated. Skipping write");
+    return return_type::OK;
+  }
+
+  // Ensure that there is not a too big difference between the current and the desired joint values
+  for (auto& joint : motion_data_.groups[0].units[0].joints)
+  {
+    if (std::abs(joint.command.position - joint.state.position) > 0.05)
+    {
+      RCLCPP_WARN_THROTTLE(LOGGER, clock_, 1000, "Too big diff in joint %s. Skipping write", joint.name.c_str());
+      // We are not returning ERROR because that would trigger a cleanup and restart and we don't want that
+      return return_type::OK;
+    }
+  }
+
+  RCLCPP_INFO_THROTTLE(LOGGER, clock_, 1000, "Writing to robot");
   egm_manager_->write(motion_data_);
   return return_type::OK;
 }

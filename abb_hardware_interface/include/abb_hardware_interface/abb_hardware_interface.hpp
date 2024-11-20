@@ -64,6 +64,9 @@ public:
   ROS2_CONTROL_DRIVER_PUBLIC
   return_type write(const rclcpp::Time& time, const rclcpp::Duration& period) override;
 
+  ROS2_CONTROL_DRIVER_PUBLIC
+  CallbackReturn on_deactivate(const rclcpp_lifecycle::State& previous_state) override;
+
 private:
   // EGM
   abb::robot::RobotControllerDescription robot_controller_description_;
@@ -71,6 +74,10 @@ private:
 
   // Store the state and commands for the robot(s)
   abb::robot::MotionData motion_data_;
+
+  rclcpp::Clock clock_;  // Clock for throttling logs
+
+  bool is_activated_;
 };
 
 }  // namespace abb_hardware_interface
