@@ -1,5 +1,5 @@
-***
-> **NOTE**: Sunrise robotics has forked the original package and made changes to support their needs.
+> [!NOTE]
+> Sunrise robotics has forked the original package and made changes to support their needs.
 > This mainly revolves around adding support for 1) Omnicore controllers and 2) starting the controller
 > with initial joint values.
 >
@@ -7,7 +7,6 @@
 > the initial joint values are retrieved from the controller in the hardware interface. A standalone
 > function was added to retrieve the joint values from RWS but without the use of the RWS managers.
 > This is a temporary solution and we will try to help with merging the changes upstream.
-***
 
 This is a meta-package containing everything to run an ABB robot or simulation with ROS 2.
 
