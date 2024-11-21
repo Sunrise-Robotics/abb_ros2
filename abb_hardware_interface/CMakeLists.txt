@@ -26,6 +26,9 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
     rclcpp_lifecycle
 )
 
+# Add Poco and TinyXML2 to dependencies
+find_package(Poco REQUIRED Foundation Net NetSSL XML)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 
@@ -42,6 +45,13 @@ add_library(
   SHARED
   src/abb_hardware_interface.cpp
   src/utilities.cpp
+)
+# Add Poco and TinyXML2 to target dependencies
+target_link_libraries(${PROJECT_NAME}
+  Poco::Foundation
+  Poco::Net
+  Poco::NetSSL
+  Poco::XML
 )
 ament_target_dependencies(${PROJECT_NAME} ${THIS_PACKAGE_INCLUDE_DEPENDS})
 target_include_directories(
