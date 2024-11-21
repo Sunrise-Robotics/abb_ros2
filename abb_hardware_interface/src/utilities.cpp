@@ -134,7 +134,7 @@ bool verifyStateMachineAddInPresence(const SystemIndicators& system_indicators)
   return system_indicators.addins().state_machine_1_0() || system_indicators.addins().state_machine_1_1();
 }
 
-// This function works as "stand-alone" does not make any use of the RWS managers. That is because
+// This function works as "stand-alone" and does not make any use of the RWS managers. That is because
 // the RWS managers (in their current state) are not compatible with the Omnicore controllers. The
 // primary use of this function is to allow the hardware interface to retrieve the current joint
 // values from the controller before EGM is initialized. This prevents sudden jumps in the joint
