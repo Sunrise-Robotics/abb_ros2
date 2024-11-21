@@ -203,28 +203,28 @@ std::vector<abb::robot::InitialJointValue> getRWSJointsFromController(
         // Navigate to the li element with class "ms-jointtarget"
         Poco::XML::Element* root = doc->documentElement();
         if (!root) {
-            throw std::runtime_error("Failed to find root element in XML");
+            throw std::runtime_error("Failed to find root element in XML.");
         }
 
         // Find the li element with class "ms-jointtarget"
         Poco::XML::Element* body = root->getChildElement("body");
         if (!body) {
-            throw std::runtime_error("Failed to find body element");
+            throw std::runtime_error("Failed to find body element.");
         }
 
         Poco::XML::Element* div = body->getChildElement("div");
         if (!div) {
-            throw std::runtime_error("Failed to find div element");
+            throw std::runtime_error("Failed to find div element.");
         }
 
         Poco::XML::Element* ul = div->getChildElement("ul");
         if (!ul) {
-            throw std::runtime_error("Failed to find ul element");
+            throw std::runtime_error("Failed to find ul element.");
         }
 
         Poco::XML::Element* li = ul->getChildElement("li");
         if (!li) {
-            throw std::runtime_error("Failed to find li element");
+            throw std::runtime_error("Failed to find li element.");
         }
 
         // Extract joint values
@@ -245,7 +245,7 @@ std::vector<abb::robot::InitialJointValue> getRWSJointsFromController(
             }
 
             if (!joint_elem) {
-                throw std::runtime_error("Failed to find " + joint_name + " in XML");
+                throw std::runtime_error("Failed to find " + joint_name + " in XML.");
             }
 
             InitialJointValue initial_value;
