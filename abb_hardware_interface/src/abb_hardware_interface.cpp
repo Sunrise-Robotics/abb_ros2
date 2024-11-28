@@ -193,7 +193,6 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
   // Initialize motion data from robot controller description
   try
   {
-    //abb::robot::initializeMotionData(motion_data_, robot_controller_description_);
     abb::robot::initializeMotionData(motion_data_, robot_controller_description_, initial_joint_values);
   }
   catch (...)
@@ -217,7 +216,7 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
     {
       const auto egm_port = stoi(info_.hardware_parameters[group.name() + "egm_port"]);
       const auto channel_configuration =
-          abb::robot::EGMManager::ChannelConfiguration{ static_cast<uint16_t>(egm_port), "", group };
+          abb::robot::EGMManager::ChannelConfiguration{ static_cast<uint16_t>(egm_port), group };
       channel_configurations.emplace_back(channel_configuration);
       RCLCPP_INFO_STREAM(LOGGER,
                          "Configuring EGM for mechanical unit group " << group.name() << " on port " << egm_port);
