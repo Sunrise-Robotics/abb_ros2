@@ -18,6 +18,9 @@
 #include <sensor_msgs/msg/joint_state.hpp>
 #include <future>
 
+// Tracing
+# include "abb_hardware_interface/hardware_interface_tp.h"
+
 using namespace std::chrono_literals;
 
 namespace abb_hardware_interface
@@ -36,7 +39,6 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
   is_activated_ = false;
 
   // Define the initial joints variable
-  // std::vector<abb::robot::InitialJointValue> initial_joint_values = {};
   std::vector<abb::robot::InitialJointValue> initial_joint_values;
 
   // Validate interfaces configured in ros2_control xacro.
@@ -371,13 +373,25 @@ CallbackReturn ABBSystemHardware::on_deactivate(const rclcpp_lifecycle::State& /
 
 return_type ABBSystemHardware::read(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
+#ifdef TRACING_ENABLED
+  tracepoint(hardware_interface, read_start);
+#endif
+
   egm_manager_->read(motion_data_);
   RCLCPP_DEBUG_THROTTLE(LOGGER, clock_, 1000, "Reading from robot");
+
+#ifdef TRACING_ENABLED
+  tracepoint(hardware_interface, read_end);
+#endif
   return return_type::OK;
 }
 
 return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
+#ifdef TRACING_ENABLED
+  tracepoint(hardware_interface, write_start);
+#endif
+
   if (!is_activated_)
   {
     RCLCPP_WARN_THROTTLE(LOGGER, clock_, 1000, "Not activated. Skipping write");
@@ -397,6 +411,10 @@ return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Dur
 
   RCLCPP_DEBUG_THROTTLE(LOGGER, clock_, 1000, "Writing to robot");
   egm_manager_->write(motion_data_);
+
+#ifdef TRACING_ENABLED
+  tracepoint(hardware_interface, write_end);
+#endif
   return return_type::OK;
 }
 

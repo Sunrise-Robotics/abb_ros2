@@ -1,0 +1,28 @@
+TRACEPOINT_EVENT(
+    hardware_interface,
+    read_start,
+    TP_ARGS(),
+    TP_FIELDS()
+)
+
+TRACEPOINT_EVENT(
+    hardware_interface,
+    read_end,
+    TP_ARGS(),
+    TP_FIELDS()
+)
+
+TRACEPOINT_EVENT(
+    hardware_interface,
+    write_start,
+    TP_ARGS(),
+    TP_FIELDS()
+)
+
+TRACEPOINT_EVENT(
+    hardware_interface,
+    write_end,
+    TP_ARGS(),
+    TP_FIELDS()
+)
+
