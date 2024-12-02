@@ -11,10 +11,13 @@ if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
+# Enable tracing in the hardware interface
+option(ENABLE_TRACING "Enable tracing in the hardware interface" OFF)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-W -Wall -Wextra
       -Wwrite-strings -Wunreachable-code -Wpointer-arith
-    -Winit-self -Wredundant-decls
+      -Winit-self -Wredundant-decls
       -Wno-unused-parameter -Wno-unused-function)
 endif()
 
@@ -29,12 +32,23 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
 # Add Poco and TinyXML2 to dependencies
 find_package(Poco REQUIRED Foundation Net NetSSL XML)
 
-# find dependencies
+# Find dependencies
 find_package(ament_cmake REQUIRED)
 
 foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
+
+###########
+## Tracing ##
+###########
+
+# Include directories
+include_directories(
+  include
+  ${CMAKE_CURRENT_SOURCE_DIR}/include  # Include for generated header file
+)
+
 
 ###########
 ## Build ##
@@ -45,13 +59,20 @@ add_library(
   SHARED
   src/abb_hardware_interface.cpp
   src/utilities.cpp
+  src/hardware_interface_tp.c  # Include the generated tracepoint source file
 )
-# Add Poco and TinyXML2 to target dependencies
+
+if(ENABLE_TRACING)
+    target_compile_definitions(abb_hardware_interface PRIVATE TRACING_ENABLED)
+endif()
+
+  # Add Poco and TinyXML2 to target dependencies
 target_link_libraries(${PROJECT_NAME}
   Poco::Foundation
   Poco::Net
   Poco::NetSSL
   Poco::XML
+  lttng-ust  # Add the LTTng UST library
 )
 ament_target_dependencies(${PROJECT_NAME} ${THIS_PACKAGE_INCLUDE_DEPENDS})
 target_include_directories(

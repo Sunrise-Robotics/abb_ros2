@@ -50,3 +50,16 @@ To run over all the files in the repo manually:
 To run pre-commit automatically before committing in a local repo, install git hooks:
 
     pre-commit install
+
+
+# Tracing
+
+Sunrise added the option to enable tracing within the `read` and `write` functions of the hardware interface.
+Tracing is turned off by default. To turn it on define the `ENABLE_TRACING` variable at build time with
+`--cmake-args -DENABLE_TRACING=OFF`.
+Example with colcon:
+```bash
+$ colcon build --packages-select abb_hardware_interface --cmake-args -DENABLE_TRACING=OFF
+```
+
+If you're wondering how to use this information, you most probably don't need tracing at this point.
