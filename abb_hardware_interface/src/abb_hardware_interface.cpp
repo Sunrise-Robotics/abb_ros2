@@ -35,6 +35,9 @@ CallbackReturn ABBSystemHardware::on_init(const hardware_interface::HardwareInfo
     return CallbackReturn::ERROR;
   }
 
+  // Print the name of the hardware interface
+  RCLCPP_INFO_STREAM(LOGGER, "Hardware interface name: " << info_.name);
+
   // Initialize the is_activated_ flag
   is_activated_ = false;
 
@@ -374,14 +377,14 @@ CallbackReturn ABBSystemHardware::on_deactivate(const rclcpp_lifecycle::State& /
 return_type ABBSystemHardware::read(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
 #ifdef TRACING_ENABLED
-  tracepoint(hardware_interface, read_start);
+  tracepoint(hardware_interface, read_start, info_.name.c_str());
 #endif
 
   egm_manager_->read(motion_data_);
   RCLCPP_DEBUG_THROTTLE(LOGGER, clock_, 1000, "Reading from robot");
 
 #ifdef TRACING_ENABLED
-  tracepoint(hardware_interface, read_end);
+  tracepoint(hardware_interface, read_end, info_.name.c_str());
 #endif
   return return_type::OK;
 }
@@ -389,7 +392,7 @@ return_type ABBSystemHardware::read(const rclcpp::Time& time, const rclcpp::Dura
 return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Duration& period)
 {
 #ifdef TRACING_ENABLED
-  tracepoint(hardware_interface, write_start);
+  tracepoint(hardware_interface, write_start, info_.name.c_str());
 #endif
 
   if (!is_activated_)
@@ -413,7 +416,7 @@ return_type ABBSystemHardware::write(const rclcpp::Time& time, const rclcpp::Dur
   egm_manager_->write(motion_data_);
 
 #ifdef TRACING_ENABLED
-  tracepoint(hardware_interface, write_end);
+  tracepoint(hardware_interface, write_end, info_.name.c_str());
 #endif
   return return_type::OK;
 }
