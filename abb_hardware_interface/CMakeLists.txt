@@ -39,9 +39,9 @@ foreach(Dependency IN ITEMS ${THIS_PACKAGE_INCLUDE_DEPENDS})
   find_package(${Dependency} REQUIRED)
 endforeach()
 
-###########
+#############
 ## Tracing ##
-###########
+#############
 
 # Include directories
 include_directories(
@@ -63,7 +63,7 @@ add_library(
 )
 
 if(ENABLE_TRACING)
-    target_compile_definitions(abb_hardware_interface PRIVATE TRACING_ENABLED)
+  target_compile_definitions(abb_hardware_interface PRIVATE TRACING_ENABLED)
 endif()
 
   # Add Poco and TinyXML2 to target dependencies
