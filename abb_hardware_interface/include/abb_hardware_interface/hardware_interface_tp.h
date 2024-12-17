@@ -12,7 +12,7 @@
 
 TRACEPOINT_EVENT_CLASS(
     hardware_interface,
-    comm_fcn,  // Class name
+    comm_fcn,    // Class name
     TP_ARGS(
         const char *, if_name
     ),
@@ -23,8 +23,8 @@ TRACEPOINT_EVENT_CLASS(
 
 TRACEPOINT_EVENT_INSTANCE(
     hardware_interface,
-    comm_fcn,  // Base class defined above
-    read_start,  // Tracepoint name, gets recorded as 'hardware_interface:read_start'
+    comm_fcn,   // Base class defined above
+    read_start, // Tracepoint name, gets recorded as 'hardware_interface:read_start'
     TP_ARGS(
         const char *, if_name
     )
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT_INSTANCE(
 
 TRACEPOINT_EVENT_INSTANCE(
     hardware_interface,
-    comm_fcn,  // Base class defined above
-    read_end,  // Tracepoint name, gets recorded as 'hardware_interface:read_end'
+    comm_fcn,    // Base class defined above
+    read_end,    // Tracepoint name, gets recorded as 'hardware_interface:read_end'
     TP_ARGS(
         const char *, if_name
     )
@@ -41,8 +41,8 @@ TRACEPOINT_EVENT_INSTANCE(
 
 TRACEPOINT_EVENT_INSTANCE(
     hardware_interface,
-    comm_fcn,  // Base class defined above
-    write_start,  // Tracepoint name, gets recorded as 'hardware_interface:write_start'
+    comm_fcn,    // Base class defined above
+    write_start, // Tracepoint name, gets recorded as 'hardware_interface:write_start'
     TP_ARGS(
         const char *, if_name
     )
@@ -50,8 +50,8 @@ TRACEPOINT_EVENT_INSTANCE(
 
 TRACEPOINT_EVENT_INSTANCE(
     hardware_interface,
-    comm_fcn,  // Base class defined above
-    write_end,  // Tracepoint name, gets recorded as 'hardware_interface:write_end'
+    comm_fcn,    // Base class defined above
+    write_end,   // Tracepoint name, gets recorded as 'hardware_interface:write_end'
     TP_ARGS(
         const char *, if_name
     )
