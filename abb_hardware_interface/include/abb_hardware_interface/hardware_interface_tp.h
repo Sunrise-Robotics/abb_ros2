@@ -1,0 +1,62 @@
+
+#undef LTTNG_UST_TRACEPOINT_PROVIDER
+#define LTTNG_UST_TRACEPOINT_PROVIDER hardware_interface
+
+#undef LTTNG_UST_TRACEPOINT_INCLUDE
+#define LTTNG_UST_TRACEPOINT_INCLUDE "./abb_hardware_interface/hardware_interface_tp.h"
+
+#if !defined(HARDWARE_INTERFACE_TP_H) || defined(LTTNG_UST_TRACEPOINT_HEADER_MULTI_READ)
+#define HARDWARE_INTERFACE_TP_H
+
+#include <lttng/tracepoint.h>
+
+TRACEPOINT_EVENT_CLASS(
+    hardware_interface,
+    comm_fcn,    // Class name
+    TP_ARGS(
+        const char *, if_name
+    ),
+    TP_FIELDS(
+        ctf_string(if_name, if_name)
+    )
+)
+
+TRACEPOINT_EVENT_INSTANCE(
+    hardware_interface,
+    comm_fcn,   // Base class defined above
+    read_start, // Tracepoint name, gets recorded as 'hardware_interface:read_start'
+    TP_ARGS(
+        const char *, if_name
+    )
+)
+
+TRACEPOINT_EVENT_INSTANCE(
+    hardware_interface,
+    comm_fcn,    // Base class defined above
+    read_end,    // Tracepoint name, gets recorded as 'hardware_interface:read_end'
+    TP_ARGS(
+        const char *, if_name
+    )
+)
+
+TRACEPOINT_EVENT_INSTANCE(
+    hardware_interface,
+    comm_fcn,    // Base class defined above
+    write_start, // Tracepoint name, gets recorded as 'hardware_interface:write_start'
+    TP_ARGS(
+        const char *, if_name
+    )
+)
+
+TRACEPOINT_EVENT_INSTANCE(
+    hardware_interface,
+    comm_fcn,    // Base class defined above
+    write_end,   // Tracepoint name, gets recorded as 'hardware_interface:write_end'
+    TP_ARGS(
+        const char *, if_name
+    )
+)
+
+#endif /* HARDWARE_INTERFACE_TP_H */
+
+#include <lttng/tracepoint-event.h>
