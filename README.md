@@ -64,11 +64,11 @@ You can see this by inspecting the `read` and `write` functions of the [`abb_har
 
 Additionally, we added the source and header files for these tracepoints in the `src` and `include` directories, respectively.
 These files were generated with the `lttng-gen-tp` tool using the definition in `hardware_interface.tp`.
-After creation, there were slightly modified to adjust the paths of the include.
+After creation, they were slightly modified to adjust the paths of the include.
 
 ## Building with tracing enabled
 
-Tracing is turned off by default. To turn it on define the `ENABLE_TRACING` variable at build time with
+Tracing is turned off by default. To turn it on, define the `ENABLE_TRACING` variable at build time with
 `--cmake-args -DENABLE_TRACING=OFF`.
 Example with colcon:
 ```bash
@@ -91,7 +91,7 @@ After that, run the ROS 2 control nodes as usual.
 ## Inspecting the trace data
 
 To inspect the data of the tracing session, we recommend using `babeltrace2`.
-If created you traced the example above, you can inspect the data with:
+If created the trace data according to the example above, you can inspect it with:
 ```bash
 babeltrace2 ~/.ros/tracing/abb-hardware-interface | less
 ```
@@ -109,7 +109,7 @@ This will open a pager with the trace data. It will look something like this:
 [14:51:33.971154327] (+0.000005466) sunrise-rtc hardware_interface:read_end: { cpu_id = 0 }, { vpid = 1519705, procname = "ros2_control_no", vtid = 1519779 }, { if_name = "ABBMultiInterfaceHardwareBig" }
 ```
 
-In this example we have two controllers, `ABBMultiInterfaceHardwareSmall` and `ABBMultiInterfaceHardwareBig`.
+In this example we have two controllers; `ABBMultiInterfaceHardwareSmall` and `ABBMultiInterfaceHardwareBig`.
 The events `write_start`, `write_end`, `read_start`, and `read_end` events are logged for both controllers.
 
 # Little bit of help with setting up tracing dependencies
@@ -121,14 +121,14 @@ First and foremost, I hope you will not need to do this.
 The [How to use ros2_tracing to trace and analyze an application](https://docs.ros.org/en/humble/Tutorials/Advanced/ROS2-Tracing-Trace-and-Analyze.html) guide is a good starting point to get tracing going. We are using Humble, which means you will need to build ROS 2 from source. This has also some other implications.
 For example ...
 
-## Building FastDDS so it's up to date
+### Building FastDDS so it's up to date
 
 The FastDDS package that is available on upstream is not up to date with the version that allows you to  use tracing.
 It boils down to some development libraries that are needed for LTTng. Please follow the
 [instructions](https://fast-dds.docs.eprosima.com/en/latest/installation/sources/sources_linux.html#fastddsgen-sl)
 in the FastDDS documentation.
 
-## Building LTTng modules
+### Building LTTng modules
 
 This part is required only if you are on a real-time computer.
 That is, a Linux with the `PREEMPT_RT` patch applied to the kernel.
