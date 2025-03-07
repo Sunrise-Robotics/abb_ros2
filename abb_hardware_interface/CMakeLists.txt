@@ -105,8 +105,14 @@ target_link_libraries(${PROJECT_NAME}
   ${POCO_XML_LIB}
   ${POCO_UTIL_LIB}
   ${POCO_JSON_LIB}
-  lttng-ust  # Add the LTTng UST library
 )
+
+# Conditionally link against LTTng-UST library when tracing is enabled
+if(ENABLE_TRACING)
+  target_link_libraries(${PROJECT_NAME} lttng-ust)
+endif()
+
+
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE
