@@ -54,16 +54,26 @@ include_directories(
 ## Build ##
 ###########
 
+# Define source files
+set(SOURCE_FILES
+  src/abb_hardware_interface.cpp
+  src/utilities.cpp
+)
+
+# Conditionally add tracepoint source file when tracing is enabled
+if(ENABLE_TRACING)
+  list(APPEND SOURCE_FILES src/hardware_interface_tp.c)
+  add_compile_definitions(TRACING_ENABLED)
+endif()
+
 add_library(
   ${PROJECT_NAME}
   SHARED
-  src/abb_hardware_interface.cpp
-  src/utilities.cpp
-  src/hardware_interface_tp.c  # Include the generated tracepoint source file
+  ${SOURCE_FILES}
 )
 
 if(ENABLE_TRACING)
-  target_compile_definitions(abb_hardware_interface PRIVATE TRACING_ENABLED)
+  # target_compile_definitions removed
 endif()
 
   # Add Poco and TinyXML2 to target dependencies

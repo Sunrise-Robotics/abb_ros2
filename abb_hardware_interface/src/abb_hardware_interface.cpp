@@ -19,7 +19,9 @@
 #include <future>
 
 // Tracing
+#ifdef TRACING_ENABLED
 # include "abb_hardware_interface/hardware_interface_tp.h"
+#endif
 
 using namespace std::chrono_literals;
 
