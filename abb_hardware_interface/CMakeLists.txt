@@ -30,7 +30,32 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
 )
 
 # Add Poco and TinyXML2 to dependencies
-find_package(Poco REQUIRED Foundation Net NetSSL XML)
+# Find Poco components manually
+find_path(POCO_INCLUDE_DIRS Poco/Poco.h)
+find_library(POCO_FOUNDATION_LIB PocoFoundation)
+find_library(POCO_NET_LIB PocoNet)
+find_library(POCO_NETSSL_LIB PocoNetSSL)
+find_library(POCO_XML_LIB PocoXML)
+find_library(POCO_UTIL_LIB PocoUtil)
+find_library(POCO_JSON_LIB PocoJSON)
+
+# Check if all libraries were found
+if(NOT POCO_FOUNDATION_LIB OR NOT POCO_NET_LIB OR NOT POCO_NETSSL_LIB)
+  message(FATAL_ERROR "Required Poco libraries not found")
+endif()
+
+# Optional libraries - don't fail if not found
+if(NOT POCO_XML_LIB)
+  message(WARNING "Poco XML library not found, some functionality may be disabled")
+endif()
+
+if(NOT POCO_JSON_LIB)
+  message(WARNING "Poco JSON library not found, some functionality may be disabled")
+endif()
+
+if(NOT POCO_UTIL_LIB)
+  message(WARNING "Poco Util library not found, some functionality may be disabled")
+endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
@@ -72,24 +97,23 @@ add_library(
   ${SOURCE_FILES}
 )
 
-if(ENABLE_TRACING)
-  # target_compile_definitions removed
-endif()
-
-  # Add Poco and TinyXML2 to target dependencies
+# Add Poco and TinyXML2 to target dependencies
 target_link_libraries(${PROJECT_NAME}
-  Poco::Foundation
-  Poco::Net
-  Poco::NetSSL
-  Poco::XML
+  ${POCO_FOUNDATION_LIB}
+  ${POCO_NET_LIB}
+  ${POCO_NETSSL_LIB}
+  ${POCO_XML_LIB}
+  ${POCO_UTIL_LIB}
+  ${POCO_JSON_LIB}
   lttng-ust  # Add the LTTng UST library
 )
-ament_target_dependencies(${PROJECT_NAME} ${THIS_PACKAGE_INCLUDE_DEPENDS})
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE
   include
+  ${POCO_INCLUDE_DIRS}
 )
+ament_target_dependencies(${PROJECT_NAME} ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 pluginlib_export_plugin_description_file(hardware_interface abb_hardware_interface.xml)
 
