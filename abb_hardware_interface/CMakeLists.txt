@@ -30,7 +30,32 @@ set(THIS_PACKAGE_INCLUDE_DEPENDS
 )
 
 # Add Poco and TinyXML2 to dependencies
-find_package(Poco REQUIRED Foundation Net NetSSL XML)
+# Find Poco components manually
+find_path(POCO_INCLUDE_DIRS Poco/Poco.h)
+find_library(POCO_FOUNDATION_LIB PocoFoundation)
+find_library(POCO_NET_LIB PocoNet)
+find_library(POCO_NETSSL_LIB PocoNetSSL)
+find_library(POCO_XML_LIB PocoXML)
+find_library(POCO_UTIL_LIB PocoUtil)
+find_library(POCO_JSON_LIB PocoJSON)
+
+# Check if all libraries were found
+if(NOT POCO_FOUNDATION_LIB OR NOT POCO_NET_LIB OR NOT POCO_NETSSL_LIB)
+  message(FATAL_ERROR "Required Poco libraries not found")
+endif()
+
+# Optional libraries - don't fail if not found
+if(NOT POCO_XML_LIB)
+  message(WARNING "Poco XML library not found, some functionality may be disabled")
+endif()
+
+if(NOT POCO_JSON_LIB)
+  message(WARNING "Poco JSON library not found, some functionality may be disabled")
+endif()
+
+if(NOT POCO_UTIL_LIB)
+  message(WARNING "Poco Util library not found, some functionality may be disabled")
+endif()
 
 # Find dependencies
 find_package(ament_cmake REQUIRED)
@@ -54,32 +79,47 @@ include_directories(
 ## Build ##
 ###########
 
+# Define source files
+set(SOURCE_FILES
+  src/abb_hardware_interface.cpp
+  src/utilities.cpp
+)
+
+# Conditionally add tracepoint source file when tracing is enabled
+if(ENABLE_TRACING)
+  list(APPEND SOURCE_FILES src/hardware_interface_tp.c)
+  add_compile_definitions(TRACING_ENABLED)
+endif()
+
 add_library(
   ${PROJECT_NAME}
   SHARED
-  src/abb_hardware_interface.cpp
-  src/utilities.cpp
-  src/hardware_interface_tp.c  # Include the generated tracepoint source file
+  ${SOURCE_FILES}
 )
 
+# Add Poco and TinyXML2 to target dependencies
+target_link_libraries(${PROJECT_NAME}
+  ${POCO_FOUNDATION_LIB}
+  ${POCO_NET_LIB}
+  ${POCO_NETSSL_LIB}
+  ${POCO_XML_LIB}
+  ${POCO_UTIL_LIB}
+  ${POCO_JSON_LIB}
+)
+
+# Conditionally link against LTTng-UST library when tracing is enabled
 if(ENABLE_TRACING)
-  target_compile_definitions(abb_hardware_interface PRIVATE TRACING_ENABLED)
+  target_link_libraries(${PROJECT_NAME} lttng-ust)
 endif()
 
-  # Add Poco and TinyXML2 to target dependencies
-target_link_libraries(${PROJECT_NAME}
-  Poco::Foundation
-  Poco::Net
-  Poco::NetSSL
-  Poco::XML
-  lttng-ust  # Add the LTTng UST library
-)
-ament_target_dependencies(${PROJECT_NAME} ${THIS_PACKAGE_INCLUDE_DEPENDS})
+
 target_include_directories(
   ${PROJECT_NAME}
   PRIVATE
   include
+  ${POCO_INCLUDE_DIRS}
 )
+ament_target_dependencies(${PROJECT_NAME} ${THIS_PACKAGE_INCLUDE_DEPENDS})
 
 pluginlib_export_plugin_description_file(hardware_interface abb_hardware_interface.xml)
 
